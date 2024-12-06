@@ -1,0 +1,160 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подробности конкурса</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="logo"><a href="{% url 'home' %}"><i class="fas fa-home"></i>Онлайн-Конкурсы</a></div>
+        <nav>
+            <ul>
+                <li><a href="{% url 'all_competitions' %}">Все конкурсы</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'my_competitions' %}">Мои конкурсы</a></li>
+                    <li><a href="{% url 'my_participant_competitions' %}">Мои участия</a></li>
+                {% else %}
+                    <li><a href="#">Мои конкурсы</a></li>
+                    <li><a href="#">Мои участия</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% if user.is_authenticated %}
+            <a href="{% url 'logout' %}" class="login-btn">Выйти</a>
+        {% else %}
+            <a href="{% url 'login' %}" class="login-btn">Войти</a>
+        {% endif %}
+    </header>
+    <main class="competition_detail">
+        <div class="header_div">
+            <a href="javascript:history.back();" class="back-link">
+                <i class="fas fa-arrow-left">Назад</i>
+            </a>
+            <h1>Конкурс: {{ competition.title }}</h1>
+        </div>
+        <p>{{ competition.description }}</p>
+        <p><strong>Дата начала голосования:</strong>  {{ competition.start_date|date:"d.m.Y H:i" }}</p>
+        <p><strong>Дата окончания голосования:</strong>  {{ competition.end_date|date:"d.m.Y H:i" }}</p>
+        <p><strong>Тип голосования:</strong> {{ competition.get_voting_type_display }}</p>
+        <p><strong>Статус:</strong> 
+            {% if competition.status == 'available' %}
+                Можно поучаствовать
+            {% elif competition.status == 'voting' %}
+                Идёт голосование
+            {% else %}
+                Завершён
+            {% endif %}
+        </p>
+        
+        <div class="competition-card" 
+                    data-start-date="{{ competition.start_date|date:'Y-m-d H:i:s' }}" 
+                    data-end-date="{{ competition.end_date|date:'Y-m-d H:i:s' }}">
+            <div class="timer-section">
+                <i class="fas fa-clock"></i> 
+                <span class="status-timer">Загрузка...</span>
+            </div>
+        </div>
+
+        <!-- Если конкурс в статусе "идет набор участников" -->
+        {% if competition.status == 'available' and not user_participation %}
+            <form method="post" class="propose_candidate_form">
+                {% csrf_token %}
+                <h1><i class="fas fa-arrow-right"></i>Предложить свою кандидатуру<i class="fas fa-arrow-left"></i></h1>
+                <input type="text" name="title" placeholder="Заголовок" required><br>
+                <textarea name="description" placeholder="Описание" required></textarea><br>
+                <button type="submit" name="apply">Предложить</button>
+            </form>
+        {% elif user_participation %}
+            <form method="post" class="propose_candidate_form">
+                <h1><i class="fas fa-arrow-down"></i> Вы участник конкурса! <i class="fas fa-arrow-down"></i></h1>
+            </form>
+        {% endif %}
+
+        <h2>Участники</h2>
+        <form method="post">
+            {% csrf_token %}
+            {% if participants %}
+                {% for participant in participants %}
+                <div>
+                    <label>
+                        {% if competition.voting_type == 'multiple_choice' %}
+                            <input type="checkbox" name="participants" value="{{ participant.id }}" 
+                                   {% if participant.id in voted_participant_ids %}checked disabled{% endif %} 
+                                   {% if voted_participant_ids or competition.status == 'completed' %}disabled{% endif %}>
+                            {{ participant.title }} - {{ participant.description }}
+                        {% else %}
+                            <input type="radio" name="participants" value="{{ participant.id }}" 
+                                   {% if participant.id in voted_participant_ids %}checked disabled{% endif %}
+                                   {% if voted_participant_ids %}disabled{% endif %}>
+                            {{ participant.title }} - {{ participant.description }}
+                        {% endif %}
+                    </label>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>Участников нет...</p>
+            {% endif %}
+            
+            {% if competition.status == 'voting' %}
+                {% if participants %}
+                    {% if not voted_participant_ids %}
+                        <button type="submit" id="vote-button" class="vote-button" name="vote" disabled>Проголосовать</button>
+                    {% else %}
+                        <p class="vote_status">
+                            Вы проголосовали за:
+                        {% for participant in voted_participants %}
+                            "{{ participant.title }}";
+                        {% endfor %}
+                    {% endif %}
+                {% else %}
+                    <p class="vote_status">К сожалению, участников не набралось. Голосование невозможно.</p>
+                {% endif %}
+            {% elif competition.status == 'available' %}
+                <p class="vote_status">Голосование еще не началось.</p>
+            {% else %}
+                <p class="vote_status">Голосование завершено.</p>
+                <div class="div_result_btn">
+                    <a href="{% url 'competition_results' competition.id %}" class="result_button">Посмотреть результаты конкурса</a>
+                </div>
+            {% endif %}
+        </form>
+
+        <h2>Комментарии</h2>
+        <ul>
+            {% for comment in comments %}
+                <li>
+                    <strong>{{ comment.user.first_name }}:</strong> {{ comment.text }}
+                </li>
+            {% endfor %}
+        </ul>
+
+        <form method="post" class="comment">
+            <h3>Оставьте комментарий</h3>
+            {% csrf_token %}
+            <textarea name="comment" placeholder="Ваш комментарий" required></textarea><br>
+            <button type="submit">Отправить</button>
+        </form>
+    </main>
+    <script src="{% static 'competition_timer.js' %}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const voteButton = document.getElementById('vote-button');
+            const inputs = document.querySelectorAll('input[name="participants"]');
+            
+            function checkSelection() {
+                let isAnySelected = Array.from(inputs).some(input => input.checked);
+                voteButton.disabled = !isAnySelected;
+            }
+    
+            inputs.forEach(input => {
+                input.addEventListener('change', checkSelection);
+            });
+        });
+    </script>
+    
+</body>
+</html>

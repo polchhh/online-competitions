@@ -1,0 +1,120 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактирование конкурса</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</head>
+<body>
+    <header>
+        <div class="logo"><a href="{% url 'home' %}"><i class="fas fa-home"></i>Онлайн-Конкурсы</a></div>
+        <nav>
+            <ul>
+                <li><a href="{% url 'all_competitions' %}">Все конкурсы</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'my_competitions' %}">Мои конкурсы</a></li>
+                    <li><a href="{% url 'my_participant_competitions' %}">Мои участия</a></li>
+                {% else %}
+                    <li><a href="#" onclick="alert('Для того чтобы перейти в «Мои конкурсы» необходимо авторизоваться!'); return false;">Мои конкурсы</a></li>
+                    <li><a href="#" onclick="alert('Для того чтобы перейти в «Мои участия» необходимо авторизоваться!'); return false;">Мои участия</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% if user.is_authenticated %}
+            <a href="{% url 'logout' %}" class="login-btn">Выйти</a>
+        {% else %}
+            <a href="{% url 'login' %}" class="login-btn">Войти</a>
+        {% endif %}
+    </header>
+
+    <main>
+        <div class="header_div">
+            <a href="{% url 'my_competitions' %}" class="back-link">
+                <i class="fas fa-arrow-left">Назад</i>
+            </a>
+            <h1>Редактирование конкурса: {{ competition.title }}</h1>
+        </div>
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="title">Название конкурса:</label>
+                <input type="text" id="title" name="title" value="{{ competition.title }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Описание конкурса:</label>
+                <textarea id="description" name="description">{{ competition.description }}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="start_date">Дата начала:</label>
+                {% if competition.status == 'voting' %}
+                    <p>Этот конкурс находится в стадии голосования. Время начала голосования нельзя изменять.</p>
+                {% else %}
+                    <input type="text" id="start_date" name="start_date" class="datetimepicker" value="{{ competition.start_date|date:'Y-m-d H:i' }}" required>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label for="end_date">Дата окончания:</label>
+                <input type="text" id="end_date" name="end_date" class="datetimepicker" value="{{ competition.end_date|date:'Y-m-d H:i' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="voting_type">Тип голосования:</label>
+                <select id="voting_type" name="voting_type">
+                    <option value="single_choice" {% if competition.voting_type == 'single_choice' %}selected{% endif %}>Одиночный выбор</option>
+                    <option value="multiple_choice" {% if competition.voting_type == 'multiple_choice' %}selected{% endif %}>Множественный выбор</option>
+                </select>
+            </div>
+
+            <button type="submit" class="save_diff">Сохранить изменения</button>
+        </form>
+
+        <h2>Участники</h2>
+        <ul>
+            {% for participant in participants %}
+                <li>
+                    ID: {{ participant.id }} <br>
+                    Name: {{ participant.user.first_name }} <br>
+                    Last_name: {{ participant.user.last_name }} <br>
+                    Title: {{ participant.title }} <br>
+                    Description: {{ participant.description }} <br>
+                    <a href="{% url 'edit_participant' competition.id participant.id %}">Редактировать</a> |
+                    <a href="{% url 'delete_participant' competition.id participant.id %}">Удалить</a>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <form method="POST" action="{% url 'delete_competition' competition.id %}" onsubmit="return confirm('Вы уверены, что хотите удалить этот конкурс?');">
+            {% csrf_token %}
+            <button type="submit" class="delete-btn">Удалить конкурс</button>
+        </form>
+        
+
+        <h2>Комментарии</h2>
+        <ul>
+            {% for comment in comments %}
+                <li>
+                    {{ comment.user.first_name }}: {{ comment.text }}
+                    <a href="{% url 'delete_comment' competition.id comment.id %}">Удалить</a>
+                </li>
+            {% endfor %}
+        </ul>
+    </main>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            flatpickr(".datetimepicker", {
+                enableTime: true,
+                dateFormat: "Y-m-d H:i",
+                locale: "ru",
+            });
+        });
+    </script>
+</body>
+</html>

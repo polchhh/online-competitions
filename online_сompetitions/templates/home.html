@@ -1,0 +1,55 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Домашняя страница</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+    <header>
+        <div class="logo"><a href="{% url 'home' %}">Онлайн-Конкурсы</a></div>
+        <nav>
+            <ul>
+                <li><a href="{% url 'all_competitions' %}">Все конкурсы</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'my_competitions' %}">Мои конкурсы</a></li>
+                    <li><a href="{% url 'my_participant_competitions' %}">Мои участия</a></li>
+                {% else %}
+                    <li><a href="#" onclick="alert('Для того чтобы перейти в «Мои конкурсы» необходимо авторизоваться!'); return false;">Мои конкурсы</a></li>
+                    <li><a href="#" onclick="alert('Для того чтобы перейти в «Мои участия» необходимо авторизоваться!'); return false;">Мои участия</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% if user.is_authenticated %}
+            <a href="{% url 'logout' %}" class="login-btn">Выйти</a>
+        {% else %}
+            <a href="{% url 'login' %}" class="login-btn">Войти</a>
+        {% endif %}
+    </header>
+    <main>
+        <section class="welcome">
+            {% if user.is_authenticated %}
+                <h1>Добро пожаловать на платформу онлайн-конкурсов, <b style="color: #F64C72;">{{ user.first_name }}</b>!</h1>
+            {% else %}
+                <h1>Добро пожаловать на платформу онлайн-конкурсов!</h1>
+                <p>Для начала пользования функционалом сайта, необходимо <a href="{% url 'login' %}">авторизоваться</a>!</p>
+            {% endif %}
+            {% if user.is_superuser %}
+                <a href="/admin/">Панель администрирования</a>
+            {% endif %}
+
+            <img src="{% static 'welcome.png' %}" alt="Добро пожаловать" class="welcome-image">
+            <p>
+                Наша платформа предоставляет удобный способ для участия в онлайн-конкурсах. <br>
+                Вы можете <b style="color: #F64C72;">находить</b> интересные конкурсы, <b style="color: #F64C72;">голосовать</b> и <b style="color: #F64C72;">участвовать</b> в них, <b style="color: #F64C72;">отслеживать</b> свои результаты, <br>
+                а также <b style="color: #F64C72;">организовывать собственные конкурсы</b>.
+            </p>
+        </section>
+    </main>
+    <p>
+       Выполнила студентка группы ИКБО-03-22 Голодаевская Полина
+    </p>
+</body>
+</html>

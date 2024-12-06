@@ -1,0 +1,79 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Результаты конкурса</title>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{% static 'votes_chart.js' %}" defer></script>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <a href="{% url 'home' %}"><i class="fas fa-home"></i> Онлайн-Конкурсы</a>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{% url 'all_competitions' %}">Все конкурсы</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'my_competitions' %}">Мои конкурсы</a></li>
+                    <li><a href="{% url 'my_participant_competitions' %}">Мои участия</a></li>
+                {% else %}
+                    <li><a href="#">Мои конкурсы</a></li>
+                    <li><a href="#">Мои участия</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% if user.is_authenticated %}
+            <a href="{% url 'logout' %}" class="login-btn">Выйти</a>
+        {% else %}
+            <a href="{% url 'login' %}" class="login-btn">Войти</a>
+        {% endif %}
+    </header>
+    <main class="competition_detail">
+        <section class="competition-info">
+            <div class="header_div">
+                <a href="javascript:history.back();" class="back-link">
+                    <i class="fas fa-arrow-left">Назад</i>
+                </a>
+                <h1>Результаты конкурса: {{ competition.title }}</h1>
+            </div>
+            <p>{{ competition.description }}</p>
+            <p><strong>Дата проведения:</strong> {{ competition.start_date|date:"d-m-Y H:i" }} - {{ competition.end_date|date:"d-m-Y H:i" }}</p>
+        </section>
+
+        <section class="voting-results">
+            <h1>Итоги голосования</h1>
+            {% if participants %}
+            <div class="chart-container">
+                <canvas id="votesChart"></canvas>
+                <script id="chartLabels" type="application/json">
+                    [{% for participant in participants %}"{{ participant.title }}"{% if not forloop.last %}, {% endif %}{% endfor %}]
+                </script>
+                <script id="chartData" type="application/json">
+                    [{% for participant in participants %}{{ participant.vote_count }}{% if not forloop.last %}, {% endif %}{% endfor %}]
+                </script>
+            </div>
+            <ol class="participants-list">
+                {% for participant in participants %}
+                    <li class="{% if winners and participant in winners %}winner{% endif %}">
+                        <strong>{{ participant.title }}</strong> - {{ participant.description }}
+                        <span>(Голосов: {{ participant.vote_count }})</span>
+                        {% if winners and participant in winners %}
+                            <span class="winner-badge">
+                                {% if winners|length > 1 %}🏅 ничья {% else %}🏆 Победитель!{% endif %}
+                            </span>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                </ol>
+            {% else %}
+                <p>Нет участников.</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>
